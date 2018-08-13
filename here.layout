@@ -1,10 +1,3 @@
-mod_pysdf_root="$layout_working_dir"
 runtime_require_layout_init here "$(getmod -n catkin_ws)"
-export PYTHONPATH="$PYTHONPATH:$mod_pysdf_root/src"
+runtime_require_layout_init interactive "$layout_working_dir"
 
-convert() {
-    log_error "in pysdf debug: pyenv version: $(pyenv version)"
-    local from="$1"
-    local to="$2"
-    rosrun pysdf sdf2urdf.py "$from" "$to"
-}
