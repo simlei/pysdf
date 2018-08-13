@@ -29,11 +29,11 @@ supported_sdf_versions = [1.4, 1.5, 1.6]
 catkin_ws_path_exists = os.path.exists(catkin_ws_path)
 
 if not catkin_ws_path_exists:
-  print ('----------------------------------------------------------')
-  print ('Path (%s) does not exist.' % catkin_ws_path)
-  print ('Please either set/change %s, or change ' % mesh_path_env_name)
-  print ('the catkin_ws_path variable inside pysdf/parse.py')
-  print ('----------------------------------------------------------')
+  print ('----------------------------------------------------------', file=sys.stderr)
+  print ('Path (%s) does not exist.' % catkin_ws_path, file=sys.stderr)
+  print ('Please either set/change %s, or change ' % mesh_path_env_name, file=sys.stderr)
+  print ('the catkin_ws_path variable inside pysdf/parse.py', file=sys.stderr)
+  print ('----------------------------------------------------------', file=sys.stderr)
   sys.exit(1)
 
 def sanitize_xml_input_name(text):
@@ -77,7 +77,7 @@ def find_model_in_gazebo_dir(modelname):
           try:
             tree = ET.parse(filename_path)
           except ParseError as e:
-              print("Error parsing SDF file %s (%s). Ignoring model and continuing." % (filename_path, e))
+              print("Error parsing SDF file %s (%s). Ignoring model and continuing." % (filename_path, e), file=sys.stderr)
               continue
           root = tree.getroot()
           if root.tag != 'sdf':
@@ -138,7 +138,7 @@ def model_from_include(parent, include_node):
     submodel_uri = submodel_uri.replace('model://', '')
     submodel_path = find_model_in_gazebo_dir(submodel_uri)
     if not submodel_path:
-      print('Failed to find included model (URI: %s)' % submodel_uri)
+      print('Failed to find included model (URI: %s)' % submodel_uri, file=sys.stderr)
       return
     submodel_name = get_tag(include_node, 'name')
     submodel_pose = get_tag_pose(include_node)
@@ -166,16 +166,16 @@ class SDF(object):
 
   def from_file(self, filename):
     if not os.path.exists(filename):
-      print('Failed to open SDF because %s does not exist' % filename)
+      print('Failed to open SDF because %s does not exist' % filename, file=sys.stderr)
       return
     tree = ET.parse(filename)
     root = tree.getroot()
     if root.tag != 'sdf':
-      print('Not a SDF file. Aborting.')
+      print('Not a SDF file. Aborting.', file=sys.stderr)
       return
     self.version = float(root.attrib['version'])
     if not self.version in supported_sdf_versions:
-      print('Unsupported SDF version in %s. Aborting.\n' % filename)
+      print('Unsupported SDF version in %s. Aborting.\n' % filename, file=sys.stderr)
       return
     self.world.from_tree(root, version=self.version)
 
@@ -183,7 +183,7 @@ class SDF(object):
   def from_model(self, modelname):
     sdf_file = find_model_in_gazebo_dir(modelname)
     if not sdf_file:
-      print('Could not resolve modelname=%s to its SDF file' % (modelname))
+      print('Could not resolve modelname=%s to its SDF file' % (modelname), file=sys.stderr)
       return
     self.from_file(sdf_file)
 
@@ -204,7 +204,7 @@ class World(object):
       for include_node in node.findall('include'):
         included_model = model_from_include(None, include_node)
         if not included_model:
-          print('Failed to include model, see previous errors. Aborting.')
+          print('Failed to include model, see previous errors. Aborting.', file=sys.stderr)
           sys.exit(1)
         self.models.append(included_model)
       # TODO lights
@@ -313,16 +313,16 @@ class Model(SpatialEntity):
 
   def from_file(self, filename, **kwargs):
     if not os.path.exists(filename):
-      print('Failed to open Model because %s does not exist' % filename)
+      print('Failed to open Model because %s does not exist' % filename, file=sys.stderr)
       return
     tree = ET.parse(filename)
     root = tree.getroot()
     if root.tag != 'sdf':
-      print('Not a SDF file. Aborting.')
+      print('Not a SDF file. Aborting.', file=sys.stderr)
       return
     self.version = float(root.attrib['version'])
     if not self.version in supported_sdf_versions:
-      print('Unsupported SDF version in %s. Aborting.\n' % filename)
+      print('Unsupported SDF version in %s. Aborting.\n' % filename, file=sys.stderr)
       return
     modelnode = get_node(root, 'model')
     self.from_tree(modelnode, **kwargs)
@@ -340,7 +340,7 @@ class Model(SpatialEntity):
     if node == None:
       return
     if node.tag != 'model':
-      print('Invalid node of type %s instead of model. Aborting.' % node.tag)
+      print('Invalid node of type %s instead of model. Aborting.' % node.tag, file=sys.stderr)
       return
     self.version = kwargs.get('version', self.version)
     super(Model, self).from_tree(node, **kwargs)
@@ -350,7 +350,7 @@ class Model(SpatialEntity):
     for include_node in node.findall('include'):
       included_submodel = model_from_include(self, include_node)
       if not included_submodel:
-        print('Failed to include model, see previous errors. Aborting.')
+        print('Failed to include model, see previous errors. Aborting.', file=sys.stderr)
         sys.exit(1)
       self.submodels.append(included_submodel)
 
@@ -406,11 +406,11 @@ class Model(SpatialEntity):
     for joint in self.joints:
       joint.tree_parent_link = self.get_link(joint.parent)
       if not joint.tree_parent_link:
-        print('Failed to find parent %s of joint %s. Aborting' % (joint.parent, joint.name))
+        print('Failed to find parent %s of joint %s. Aborting' % (joint.parent, joint.name), file=sys.stderr)
         sys.exit(1)
       joint.tree_child_link = self.get_link(joint.child)
       if not joint.tree_child_link:
-        print('Failed to find child %s of joint %s. Aborting' % (joint.child, joint.name))
+        print('Failed to find child %s of joint %s. Aborting' % (joint.child, joint.name), file=sys.stderr)
         sys.exit(1)
         return None
       joint.tree_parent_link.tree_child_joints.append(joint)
@@ -432,7 +432,7 @@ class Model(SpatialEntity):
 
   def find_root_link(self):
     if not self.links:
-      print('Model %s has no links and therefore no root link. Aborting' % self.name)
+      print('Model %s has no links and therefore no root link. Aborting' % self.name, file=sys.stderr)
       return None
     curr_link = self.links[0]
     while True:
@@ -552,7 +552,7 @@ class Link(SpatialEntity):
     if node == None:
       return
     if node.tag != 'link':
-      print('Invalid node of type %s instead of link. Aborting.' % node.tag)
+      print('Invalid node of type %s instead of link. Aborting.' % node.tag, file=sys.stderr)
       return
     super(Link, self).from_tree(node)
     self.inertial = Inertial(tree=get_node(node, 'inertial'))
@@ -620,7 +620,7 @@ class Joint(SpatialEntity):
     if node == None:
       return
     if node.tag != 'joint':
-      print('Invalid node of type %s instead of joint. Aborting.' % node.tag)
+      print('Invalid node of type %s instead of joint. Aborting.' % node.tag, file=sys.stderr)
       return
     super(Joint, self).from_tree(node)
     self.type = node.attrib['type']
@@ -694,13 +694,13 @@ class Axis(object):
     if node == None:
       return
     if node.tag != 'axis' and node.tag != 'axis2':
-      print('Invalid node of type %s instead of axis(2). Aborting.' % node.tag)
+      print('Invalid node of type %s instead of axis(2). Aborting.' % node.tag, file=sys.stderr)
       return
     self.xyz = numpy.array(get_tag(node, 'xyz').split())
     self.use_parent_model_frame = bool(get_tag(node, 'use_parent_model_frame'))
     limitnode = get_node(node, 'limit')
     if limitnode == None:
-      print('limit Tag missing from joint. Aborting.')
+      print('limit Tag missing from joint. Aborting.', file=sys.stderr)
       return
     self.lower_limit = float(get_tag(limitnode, 'lower', 0))
     self.upper_limit = float(get_tag(limitnode, 'upper', 0))
@@ -718,7 +718,7 @@ class Axis(object):
       elif self.joint.urdf_type == 'fixed':
         pass
       else:
-        print('Error calculating axis of joint %s for given xyz=%s' % (self.joint.name, xyz_joint))
+        print('Error calculating axis of joint %s for given xyz=%s' % (self.joint.name, xyz_joint), file=sys.stderr)
       #print('self.xyz=%s\nmodelCBTjoint:\n%s\nrotation_modelCBT_joint:\n%s\nxyz_joint=%s' % (self.xyz, modelCBTjoint, rotation_modelCBTjoint, xyz_joint))
     else: # SDF 1.5 axis is specified in joint frame unless the use_parent_model_frame flag is set to true
       xyz_joint = self.xyz
@@ -750,7 +750,7 @@ class Inertial(object):
     if node == None:
       return
     if node.tag != 'inertial':
-      print('Invalid node of type %s instead of inertial. Aborting.' % node.tag)
+      print('Invalid node of type %s instead of inertial. Aborting.' % node.tag, file=sys.stderr)
       return
     self.pose = get_tag_pose(node)
     self.mass = get_tag(node, 'mass', 0)
@@ -786,7 +786,7 @@ class Inertia(object):
     if node == None:
       return
     if node.tag != 'inertia':
-      print('Invalid node of type %s instead of inertia. Aborting.' % node.tag)
+      print('Invalid node of type %s instead of inertia. Aborting.' % node.tag, file=sys.stderr)
       return
     for coord in self.coords:
       setattr(self, coord, get_tag(node, coord, 0))
@@ -813,7 +813,7 @@ class LinkPart(SpatialEntity):
     if node == None:
       return
     if node.tag != 'visual' and node.tag != 'collision':
-      print('Invalid node of type %s instead of visual or collision. Aborting.' % node.tag)
+      print('Invalid node of type %s instead of visual or collision. Aborting.' % node.tag, file=sys.stderr)
       return
     super(LinkPart, self).from_tree(node)
     gnode = get_node(node, 'geometry')
@@ -830,6 +830,7 @@ class LinkPart(SpatialEntity):
         elif gtype == 'sphere':
           self.geometry_data = {'radius': get_tag(typenode, 'radius')}
         elif gtype == 'mesh':
+          # self.geometry_data = {'uri': get_tag(typenode, 'uri').replace("home/lang_vi/workspace/gazebo-projects/clash_world/clash_hand", "home/simon/sandbox/graspitmod/handconvert"), 'scale': get_tag(typenode, 'scale', '1.0 1.0 1.0')}
           self.geometry_data = {'uri': get_tag(typenode, 'uri'), 'scale': get_tag(typenode, 'scale', '1.0 1.0 1.0')}
 
 
@@ -850,14 +851,22 @@ class LinkPart(SpatialEntity):
     elif self.geometry_type == 'sphere':
       spherenode = ET.SubElement(geometrynode, 'sphere', {'radius': self.geometry_data['radius']})
     elif self.geometry_type == 'mesh':
-      mesh_file = '/'.join(self.geometry_data['uri'].split('/')[3:])
-      mesh_found = find_mesh_in_catkin_ws(mesh_file)
-      if mesh_found:
-        mesh_path = 'package://' + mesh_found
+      mesh_file = '/' + '/'.join(self.geometry_data['uri'].split('/')[3:])
+      if not os.path.exists(mesh_file):
+          print('nonexisting mesh path: %s' % mesh_file, file=sys.stderr)
+          exit(1)
       else:
-        print('Could not find mesh %s in %s' % (mesh_file, catkin_ws_path))
-        mesh_path = 'package://PATHTOMESHES/' + mesh_file
-      meshnode = ET.SubElement(geometrynode, 'mesh', {'filename': mesh_path, 'scale': self.geometry_data['scale']})
+          print('found mesh file: %s' % mesh_file, file=sys.stderr)
+      meshnode = ET.SubElement(geometrynode, 'mesh', {'filename': 'file://'+mesh_file, 'scale': self.geometry_data['scale']})
+
+      # print('meshfile:', mesh_file)
+      # mesh_found = find_mesh_in_catkin_ws(mesh_file)
+      # if mesh_found:
+      #   mesh_path = 'package://' + mesh_found
+      # else:
+      #   print('Could not find mesh %s in %s' % (mesh_file, catkin_ws_path))
+      #   mesh_path = 'package://PATHTOMESHES/' + mesh_file
+      # meshnode = ET.SubElement(geometrynode, 'mesh', {'filename': mesh_path, 'scale': self.geometry_data['scale']})
 
 
 

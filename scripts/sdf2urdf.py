@@ -5,7 +5,6 @@ import argparse
 
 import pysdf
 
-
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('sdf', help='SDF file to convert')
